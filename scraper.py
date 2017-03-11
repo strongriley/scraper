@@ -1,5 +1,6 @@
 # TODO
 from urlparse import urljoin
+from urlparse import urlparse
 
 import fire
 import requests
@@ -18,10 +19,8 @@ class UrlNode(object):
     def process(self):
         # TODO: How should we manage timeouts?
         response = requests.get(self.url) # Allow exceptions to bubble
-        print response
         # TODO HTML parsing failures?
         html = BeautifulSoup(response.text, 'html.parser')
-        print html
         self._find_static(html)
         self._find_urls(html)
 
@@ -53,8 +52,16 @@ class UrlNode(object):
                 self.static_urls.append(urljoin(self.url, script['src']))
 
     def _find_urls(self, html):
-        pass
-        # TODO ignore other subdomains
+        urls = html.find_all('a')
+        for url in urls:
+            if not url.get('href'):
+                continue
+            abs_url = urljoin(self.url, url.get('href'))
+            current_urlparse = urlparse(self.url)
+            new_urlparse = urlparse(abs_url)
+            if current_urlparse.netloc != new_urlparse.netloc:
+                continue
+            self.linked_urls.append(abs_url)
         # TODO ignore inner page # anchors?
 
 

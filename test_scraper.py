@@ -104,6 +104,52 @@ class UnitTestUrlNode(unittest.TestCase):
         node.process()
         self.assertEqual(node.static_urls, ['http://example.com/s.js'])
 
+    def test_find_urls_absolute(self):
+        body = '<a href="http://example.com/login/">login</a>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, ['http://example.com/login/'])
+
+    def test_find_urls_add_subdomain(self):
+        body = '<a href="http://mail.example.com">e-mail</a>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, [])
+
+    def test_find_urls_remove_subdomain(self):
+        self.url = 'http://www.example.com'
+        node = UrlNode(self.url)
+        body = '<a href="http://example.com/login/">login</a>'
+        self._mock_response(body)
+        node.process()
+        self.assertEqual(node.linked_urls, [])
+
+    def test_find_urls_different_subdomain(self):
+        self.url = 'http://www.example.com'
+        node = UrlNode(self.url)
+        body = '<a href="http://mail.example.com">e-mail</a>'
+        self._mock_response(body)
+        node.process()
+        self.assertEqual(node.linked_urls, [])
+
+    def test_find_urls_different_domain(self):
+        body = '<a href="http://rileystrong.com">Riley Strong</a>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, [])
+
+    def test_find_urls_different_scheme(self):
+        body = '<a href="https://example.com/login">secure login</a>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, ['https://example.com/login'])
+
+    def test_find_urls_fragment(self):
+        body = '<a name="top"></a><a href="#top">jump to top</a>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, [])
+
     def _mock_response(self, body, status=200):
         self.responses.add(
             responses.GET, self.url, body=body, status=status)
