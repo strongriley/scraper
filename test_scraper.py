@@ -80,6 +80,30 @@ class UnitTestUrlNode(unittest.TestCase):
         node.process()
         self.assertEqual(node.static_urls, ['http://example.com/img.jpg'])
 
+    def test_find_static_script_absolute(self):
+        body = '<script src="http://example.com/s.js"></script>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.static_urls, ['http://example.com/s.js'])
+
+    def test_find_static_script_inline(self):
+        body = '''
+        <script type="text/javascript">
+            alert('pwned');
+        </script>'
+        '''
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.static_urls, [])
+
+    def test_find_static_script_relative(self):
+        self.url = 'http://example.com/folder/index.html'
+        node = UrlNode(self.url)
+        body = '<script src="../s.js"></script>'
+        self._mock_response(body)
+        node.process()
+        self.assertEqual(node.static_urls, ['http://example.com/s.js'])
+
     def _mock_response(self, body, status=200):
         self.responses.add(
             responses.GET, self.url, body=body, status=status)
