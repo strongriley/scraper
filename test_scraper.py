@@ -28,13 +28,11 @@ class UnitTestUrlNode(unittest.TestCase):
         self.url = 'http://example.com/'
         self.node = UrlNode(self.url)
 
-    # @responses.activate # TODO would be nice to not have to add this to every method
     def test_find_static_stylesheet_absolute(self):
-        body = '<link rel="stylesheet" href="http://example.com/sheet.css">'
+        body = '<link rel="stylesheet" href="http://example.com/s.css">'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls,
-                         ['http://example.com/sheet.css'])
+        self.assertEqual(self.node.static_urls, ['http://example.com/s.css'])
 
     def test_find_static_stylesheet_ignore_other_link(self):
         body = '''
@@ -51,9 +49,7 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<link rel="stylesheet" href="../sheet.css">'
         self._mock_response(body)
         node.process()
-        self.assertEqual(node.static_urls,
-                         ['http://example.com/sheet.css'])
-        pass
+        self.assertEqual(node.static_urls, ['http://example.com/sheet.css'])
 
     def test_find_static_stylesheet_bad_url(self):
         """
@@ -62,8 +58,27 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<link rel="stylesheet" href="htp:/example.com/sheet.css">'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls,
-                         ['htp:/example.com/sheet.css'])
+        self.assertEqual(self.node.static_urls, ['htp:/example.com/sheet.css'])
+
+    def test_find_static_img_absolute(self):
+        body = '<img height="50" width="50" src="http://example.com/img.jpg">'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.static_urls, ['http://example.com/img.jpg'])
+
+    def test_find_static_img_src_missing(self):
+        body = '<img height="50" width="50">'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.static_urls, [])
+
+    def test_find_static_img_relative(self):
+        self.url = 'http://example.com/folder/index.html'
+        node = UrlNode(self.url)
+        body = '<link rel="stylesheet" href="/img.jpg">'
+        self._mock_response(body)
+        node.process()
+        self.assertEqual(node.static_urls, ['http://example.com/img.jpg'])
 
     def _mock_response(self, body, status=200):
         self.responses.add(
