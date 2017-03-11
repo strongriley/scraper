@@ -1,2 +1,8 @@
 # requests plus some crypto stuff for better security
 requests[security]
+
+# For testing
+responses==0.5.1
+
+# Make CLI simpler. Probably over-kill but trying something new
+fire==0.1.0
