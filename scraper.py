@@ -6,6 +6,8 @@ import fire
 import requests
 from bs4 import BeautifulSoup
 
+DEFAULT_MAX_PAGES = 20
+
 
 class UrlNode(object):
     def __init__(self, url):
@@ -21,7 +23,7 @@ class UrlNode(object):
 
     def process(self):
         # TODO(riley): How should we manage timeouts?
-        response = requests.get(self.url) # Allow exceptions to bubble
+        response = requests.get(self.url)  # Allow exceptions to bubble
         # TODO(riley): HTML parsing failures?
         html = BeautifulSoup(response.text, 'html.parser')
         self._find_static(html)
@@ -80,10 +82,12 @@ class Scraper(object):
         self._url_queue = []
         self.nodes = dict()
 
-    def scrape(self, starting_url, max_depth=None, max_pages=None):
-        # TODO(riley): max_depth, max_pages
+    def scrape(self, starting_url, max_pages=DEFAULT_MAX_PAGES):
+        self.max_pages = max_pages
+        # TODO(riley): could also add max_depth but let's keep simple for now
         self._url_queue.append(starting_url)
         self._process_queue()
+        # TODO(riley): print everything
 
     def _process_queue(self):
         while self._url_queue:
@@ -100,8 +104,9 @@ class Scraper(object):
                 if len(self.nodes) == 1:
                     raise e
             self._url_queue.extend(node.linked_urls)
-
-
+            # How does one get off this thing?
+            if len(self.nodes) >= self.max_pages:
+                break
 
 
 if __name__ == '__main__':

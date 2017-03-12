@@ -6,6 +6,7 @@ import re
 from contextlib import contextmanager
 from StringIO import StringIO
 
+import requests
 import responses
 
 from scraper import UrlNode
@@ -39,7 +40,7 @@ class BaseScraperTestCase(unittest.TestCase):
             self.responses = r
             super(BaseScraperTestCase, self).run(result)
 
-    def _mock_fixtures(self):
+    def mock_fixtures(self):
         # TODO(riley): if making lots of calls to this it'll wasting I/O
         for filename in FIXTURES:
             with open(os.path.join('fixtures', filename)) as f:
@@ -81,7 +82,7 @@ class IntegrationTestScraper(BaseScraperTestCase):
         self.scraper = Scraper()
 
     def test_simple_traverse(self):
-        self._mock_fixtures()
+        self.mock_fixtures()
         self.scraper.scrape(self.url)
         expected_nodes = {
             'http://example.com/index.html',
@@ -104,8 +105,57 @@ class IntegrationTestScraper(BaseScraperTestCase):
         for url, static_urls in expected_static.iteritems():
             self.assertEqual(self.scraper.nodes[url].static_urls, static_urls)
 
-    def test_bad_seed(self):
-        pass
+    def test_fail_bad_seed_url(self):
+        self.assertRaises(
+            requests.exceptions.InvalidSchema,
+            self.scraper.scrape, 'htp://example.com')
+
+    def test_ignore_bad_scraped_url(self):
+        body = '<a href="htp://example.com/login">login</a>'
+        self.responses.add(responses.GET, self.url, body=body, status=200)
+        self.scraper.scrape(self.url)
+
+    def test_stripped_nodes_list(self):
+        self.url = 'http://example.com'
+        body = '<a href="http://example.com/">login</a>'
+        self.responses.add(responses.GET, self.url, body=body, status=200)
+        self.scraper.scrape(self.url)
+        self.assertTrue('http://example.com' in self.scraper.nodes)
+        self.assertFalse('http://example.com/' in self.scraper.nodes)
+
+    def test_default_max_pages(self):
+        # Must use different responses context to allow multiple calls
+        with responses.RequestsMock(
+                assert_all_requests_are_fired=False) as res:
+            self._add_wild_goose_chase(res)
+            self.scraper.scrape(self.url)
+            self.assertEqual(len(self.scraper.nodes), 20)
+
+    def test_custom_max_pages(self):
+        # Must use different responses context to allow multiple calls
+        with responses.RequestsMock(
+                assert_all_requests_are_fired=False) as res:
+            self._add_wild_goose_chase(res)
+            self.scraper.scrape(self.url, 50)
+            self.assertEqual(len(self.scraper.nodes), 50)
+
+    def _add_wild_goose_chase(self, res):
+        def wild_goose_chase(request):
+            # Keeps providing a new link forever
+            # import pdb; pdb.set_trace()
+            try:
+                idx = int(request.url.split('/')[-1])
+            except:
+                idx = 0
+            idx += 1
+            body = '<a href="http://example.com/%s">keep goin</a>' % idx
+            headers = {'idx': str(idx)}
+            return (200, headers, body)
+
+        res.add_callback(
+            responses.GET, re.compile(r'.+'),
+            callback=wild_goose_chase,
+            content_type='text/html')
 
 
 class UnitTestUrlNode(BaseScraperTestCase):
