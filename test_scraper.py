@@ -150,6 +150,17 @@ class UnitTestUrlNode(unittest.TestCase):
         self.node.process()
         self.assertEqual(self.node.linked_urls, [])
 
+    def test_find_urls_root_fragment(self):
+        self.url = 'http://www.example.com/#top'
+        node = UrlNode(self.url)
+        body = '<a name="bottom"></a><a href="#bottom">jump to top</a>'
+        # Manually add otherwise responses won't think we visited the page
+        # since the fragment is removed
+        self.responses.add(
+            responses.GET, 'http://www.example.com/', body=body, status=200)
+        node.process()
+        self.assertEqual(node.linked_urls, [])
+
     def _mock_response(self, body, status=200):
         self.responses.add(
             responses.GET, self.url, body=body, status=status)

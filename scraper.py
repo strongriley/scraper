@@ -11,8 +11,10 @@ class UrlNode(object):
     def __init__(self, url):
         """
         URL: should be a string something like "http://www.example.com"
+        Note URL fragments like #top or #chapter2 will be stripped because
+        we'll still be scraping the same page.
         """
-        self.url = url
+        self.url = url.split('#')[0]
         self.static_urls = []
         self.linked_urls = []
 
@@ -56,13 +58,14 @@ class UrlNode(object):
         for url in urls:
             if not url.get('href'):
                 continue
-            abs_url = urljoin(self.url, url.get('href'))
+            abs_url = urljoin(self.url, url.get('href').split('#')[0])
             current_urlparse = urlparse(self.url)
             new_urlparse = urlparse(abs_url)
+            if current_urlparse == new_urlparse:
+                continue
             if current_urlparse.netloc != new_urlparse.netloc:
                 continue
             self.linked_urls.append(abs_url)
-        # TODO ignore inner page # anchors?
 
 
 class Scraper(object):
