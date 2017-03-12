@@ -1,4 +1,4 @@
-# TODO
+#!/usr/bin/env python
 from urlparse import urljoin
 from urlparse import urlparse
 
