@@ -20,9 +20,9 @@ class UrlNode(object):
         self.linked_urls = set()
 
     def process(self):
-        # TODO: How should we manage timeouts?
+        # TODO(riley): How should we manage timeouts?
         response = requests.get(self.url) # Allow exceptions to bubble
-        # TODO HTML parsing failures?
+        # TODO(riley): HTML parsing failures?
         html = BeautifulSoup(response.text, 'html.parser')
         self._find_static(html)
         self._find_urls(html)
@@ -41,7 +41,7 @@ class UrlNode(object):
 
         # Images ------------
         # grab img tags' src attribute
-        # TODO should we follow stylesheets to their images and fonts?
+        # TODO(riley): should we follow stylesheets to their images and fonts?
         imgs = html.find_all('img')
         for img in imgs:
             if img.get('src'):
@@ -76,27 +76,30 @@ class Scraper(object):
     """
     A website scraper
     """
-
     def __init__(self):
-        self.url_queue = []
-        self.visited = dict()
+        self._url_queue = []
+        self.nodes = dict()
 
     def scrape(self, starting_url, max_depth=None, max_pages=None):
-        # TODO max_depth, max_pages
-        self.url_queue.append(starting_url)
+        # TODO(riley): max_depth, max_pages
+        self._url_queue.append(starting_url)
         self._process_queue()
 
     def _process_queue(self):
-        while self.url_queue:
+        while self._url_queue:
+            node = UrlNode(self._url_queue.pop(0))
+            if node.url in self.nodes:
+                continue
+            self.nodes[node.url] = node
             try:
-                node = UrlNode(self.url_queue.pop(0))
                 node.process()
-            except requests.RequestException as e:
             # On the first request, errors will not be suppressed so the user
             # can correct their input. After that, URLs will all be scraped and
-            # we don't want to bomb out because some website screwed up.
-                if len(self.visited) == 0:
+            # we don't want to bomb out b/c some website screwed up their HTML.
+            except requests.RequestException as e:
+                if len(self.nodes) == 1:
                     raise e
+            self._url_queue.extend(node.linked_urls)
 
 
 

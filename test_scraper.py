@@ -1,20 +1,35 @@
 #!/usr/bin/env python
 import unittest
+import sys
+import os
+import re
+from contextlib import contextmanager
+from StringIO import StringIO
 
 import responses
 
 from scraper import UrlNode
 from scraper import Scraper
 
+FIXTURES = [
+    'about.html',
+    'index.html',
+    'login.html']
 
-class IntegrationTestScraper(unittest.TestCase):
-    pass
+
+# Thanks Stackoverflow: http://stackoverflow.com/a/17981937
+@contextmanager
+def captured_output():
+    new_out, new_err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
 
 
-class UnitTestUrlNode(unittest.TestCase):
-    """
-    Unit tests all functionality inside UrlNode class
-    """
+class BaseScraperTestCase(unittest.TestCase):
     def run(self, result=None):
         """
         Instead of decorating every test with @responses.activate just put
@@ -22,8 +37,81 @@ class UnitTestUrlNode(unittest.TestCase):
         """
         with responses.RequestsMock(assert_all_requests_are_fired=True) as r:
             self.responses = r
-            super(UnitTestUrlNode, self).run(result)
+            super(BaseScraperTestCase, self).run(result)
 
+    def _mock_fixtures(self):
+        # TODO(riley): if making lots of calls to this it'll wasting I/O
+        for filename in FIXTURES:
+            with open(os.path.join('fixtures', filename)) as f:
+                url = 'http://example.com/%s' % filename
+                self.responses.add(
+                    responses.GET, url, body=f.read(), status=200)
+
+
+class AcceptanceTestScraper(BaseScraperTestCase):
+    """
+    Acceptance tests on the Scraper class checking stdout
+    """
+    def run(self, result=None):
+        """
+        Automatically capture stdout and stderr since that's how scraper
+        outputs things and that's what we want to test.
+        """
+        with captured_output() as (out, err):
+            self.stdout = out
+            self.stderr = err
+            super(AcceptanceTestScraper, self).run(result)
+
+    def test_basic_traverse(self):
+        pass
+        # print "hello world"
+        # self.assertEqual(self.stdout_value, "hi")
+
+    @property
+    def stdout_value(self):
+        return self.stdout.getvalue().strip()
+
+
+class IntegrationTestScraper(BaseScraperTestCase):
+    """
+    Integration tests on the Scraper class checking scraper.nodes
+    """
+    def setUp(self):
+        self.url = 'http://example.com/index.html'
+        self.scraper = Scraper()
+
+    def test_simple_traverse(self):
+        self._mock_fixtures()
+        self.scraper.scrape(self.url)
+        expected_nodes = {
+            'http://example.com/index.html',
+            'http://example.com/about.html',
+            'http://example.com/login.html',
+            'http://example.com/404'}
+        self.assertEqual(set(self.scraper.nodes.keys()), expected_nodes)
+        expected_static = {
+            'http://example.com/index.html': {
+                'http://example.com/style.css',
+                'http://example.com/home.jpg',
+                'http://example.com/main.js'
+            }, 'http://example.com/about.html': {
+                'http://example.com/about.css',
+                'http://example.com/images/about.jpg',
+            }, 'http://example.com/login.html': set([]),
+            'http://example.com/404': set([]),
+        }
+
+        for url, static_urls in expected_static.iteritems():
+            self.assertEqual(self.scraper.nodes[url].static_urls, static_urls)
+
+    def test_bad_seed(self):
+        pass
+
+
+class UnitTestUrlNode(BaseScraperTestCase):
+    """
+    Unit tests all functionality inside UrlNode class
+    """
     def setUp(self):
         self.url = 'http://example.com'
         self.node = UrlNode(self.url)
