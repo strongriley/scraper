@@ -25,8 +25,16 @@ class UnitTestUrlNode(unittest.TestCase):
             super(UnitTestUrlNode, self).run(result)
 
     def setUp(self):
-        self.url = 'http://example.com/'
+        self.url = 'http://example.com'
         self.node = UrlNode(self.url)
+
+    def test_strip_trailing_slash(self):
+        self.node = UrlNode('https://example.com/')
+        self.assertEqual(self.node.url, 'https://example.com')
+
+    def test_strip_fragments(self):
+        self.node = UrlNode('https://example.com#top')
+        self.assertEqual(self.node.url, 'https://example.com')
 
     def test_find_static_stylesheet_absolute(self):
         body = '<link rel="stylesheet" href="http://example.com/s.css">'
@@ -114,10 +122,16 @@ class UnitTestUrlNode(unittest.TestCase):
         self.assertEqual(self.node.static_urls, {'http://example.com/s.css'})
 
     def test_find_urls_absolute(self):
+        body = '<a href="http://example.com/login">login</a>'
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
+
+    def test_find_urls_strip_trailing_slash(self):
         body = '<a href="http://example.com/login/">login</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, {'http://example.com/login/'})
+        self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
 
     def test_find_urls_add_subdomain(self):
         body = '<a href="http://mail.example.com">e-mail</a>'
@@ -172,12 +186,12 @@ class UnitTestUrlNode(unittest.TestCase):
 
     def test_find_urls_remove_duplicates(self):
         body = '''
-        <a href="http://example.com/login/">login</a>
-        <a href="http://example.com/login/">login</a>
+        <a href="http://example.com/login">login</a>
+        <a href="http://example.com/login">login</a>
         '''
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, {'http://example.com/login/'})
+        self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
 
     def _mock_response(self, body, status=200):
         self.responses.add(
