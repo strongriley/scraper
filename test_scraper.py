@@ -32,7 +32,7 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<link rel="stylesheet" href="http://example.com/s.css">'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls, ['http://example.com/s.css'])
+        self.assertEqual(self.node.static_urls, {'http://example.com/s.css'})
 
     def test_find_static_stylesheet_ignore_other_link(self):
         body = '''
@@ -49,28 +49,28 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<link rel="stylesheet" href="../sheet.css">'
         self._mock_response(body)
         node.process()
-        self.assertEqual(node.static_urls, ['http://example.com/sheet.css'])
+        self.assertEqual(node.static_urls, {'http://example.com/sheet.css'})
 
     def test_find_static_stylesheet_bad_url(self):
         """
         Should still include it, but this is debatable
         """
-        body = '<link rel="stylesheet" href="htp:/example.com/sheet.css">'
+        body = '<link rel="stylesheet" href="htp:/example.com/s.css">'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls, ['htp:/example.com/sheet.css'])
+        self.assertEqual(self.node.static_urls, {'htp:/example.com/s.css'})
 
     def test_find_static_img_absolute(self):
         body = '<img height="50" width="50" src="http://example.com/img.jpg">'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls, ['http://example.com/img.jpg'])
+        self.assertEqual(self.node.static_urls, {'http://example.com/img.jpg'})
 
     def test_find_static_img_src_missing(self):
         body = '<img height="50" width="50">'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls, [])
+        self.assertFalse(self.node.static_urls)
 
     def test_find_static_img_relative(self):
         self.url = 'http://example.com/folder/index.html'
@@ -78,13 +78,13 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<link rel="stylesheet" href="/img.jpg">'
         self._mock_response(body)
         node.process()
-        self.assertEqual(node.static_urls, ['http://example.com/img.jpg'])
+        self.assertEqual(node.static_urls, {'http://example.com/img.jpg'})
 
     def test_find_static_script_absolute(self):
         body = '<script src="http://example.com/s.js"></script>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls, ['http://example.com/s.js'])
+        self.assertEqual(self.node.static_urls, {'http://example.com/s.js'})
 
     def test_find_static_script_inline(self):
         body = '''
@@ -94,7 +94,7 @@ class UnitTestUrlNode(unittest.TestCase):
         '''
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.static_urls, [])
+        self.assertFalse(self.node.static_urls)
 
     def test_find_static_script_relative(self):
         self.url = 'http://example.com/folder/index.html'
@@ -102,19 +102,28 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<script src="../s.js"></script>'
         self._mock_response(body)
         node.process()
-        self.assertEqual(node.static_urls, ['http://example.com/s.js'])
+        self.assertEqual(node.static_urls, {'http://example.com/s.js'})
+
+    def test_find_static_remove_duplicates(self):
+        body = '''
+        <link rel="stylesheet" href="http://example.com/s.css">
+        <link rel="stylesheet" href="http://example.com/s.css">
+        '''
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.static_urls, {'http://example.com/s.css'})
 
     def test_find_urls_absolute(self):
         body = '<a href="http://example.com/login/">login</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, ['http://example.com/login/'])
+        self.assertEqual(self.node.linked_urls, {'http://example.com/login/'})
 
     def test_find_urls_add_subdomain(self):
         body = '<a href="http://mail.example.com">e-mail</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, [])
+        self.assertFalse(self.node.linked_urls)
 
     def test_find_urls_remove_subdomain(self):
         self.url = 'http://www.example.com'
@@ -122,7 +131,7 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<a href="http://example.com/login/">login</a>'
         self._mock_response(body)
         node.process()
-        self.assertEqual(node.linked_urls, [])
+        self.assertFalse(node.linked_urls)
 
     def test_find_urls_different_subdomain(self):
         self.url = 'http://www.example.com'
@@ -130,25 +139,25 @@ class UnitTestUrlNode(unittest.TestCase):
         body = '<a href="http://mail.example.com">e-mail</a>'
         self._mock_response(body)
         node.process()
-        self.assertEqual(node.linked_urls, [])
+        self.assertFalse(node.linked_urls)
 
     def test_find_urls_different_domain(self):
         body = '<a href="http://rileystrong.com">Riley Strong</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, [])
+        self.assertFalse(self.node.linked_urls)
 
     def test_find_urls_different_scheme(self):
         body = '<a href="https://example.com/login">secure login</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, ['https://example.com/login'])
+        self.assertEqual(self.node.linked_urls, {'https://example.com/login'})
 
     def test_find_urls_fragment(self):
         body = '<a name="top"></a><a href="#top">jump to top</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, [])
+        self.assertFalse(self.node.linked_urls)
 
     def test_find_urls_root_fragment(self):
         self.url = 'http://www.example.com/#top'
@@ -159,7 +168,16 @@ class UnitTestUrlNode(unittest.TestCase):
         self.responses.add(
             responses.GET, 'http://www.example.com/', body=body, status=200)
         node.process()
-        self.assertEqual(node.linked_urls, [])
+        self.assertFalse(node.linked_urls)
+
+    def test_find_urls_remove_duplicates(self):
+        body = '''
+        <a href="http://example.com/login/">login</a>
+        <a href="http://example.com/login/">login</a>
+        '''
+        self._mock_response(body)
+        self.node.process()
+        self.assertEqual(self.node.linked_urls, {'http://example.com/login/'})
 
     def _mock_response(self, body, status=200):
         self.responses.add(

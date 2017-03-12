@@ -14,9 +14,10 @@ class UrlNode(object):
         Note URL fragments like #top or #chapter2 will be stripped because
         we'll still be scraping the same page.
         """
+        # TODO should we see rileystrong.com/ and rileystrong.com as the same?
         self.url = url.split('#')[0]
-        self.static_urls = []
-        self.linked_urls = []
+        self.static_urls = set()
+        self.linked_urls = set()
 
     def process(self):
         # TODO: How should we manage timeouts?
@@ -36,7 +37,7 @@ class UrlNode(object):
         # Could be a single list comprehensions line but that'd get messy
         for link in links:
             if 'stylesheet' in link.get('rel') and link.get('href'):
-                self.static_urls.append(urljoin(self.url, link['href']))
+                self.static_urls.add(urljoin(self.url, link['href']))
 
         # Images ------------
         # grab img tags' src attribute
@@ -44,14 +45,16 @@ class UrlNode(object):
         imgs = html.find_all('img')
         for img in imgs:
             if img.get('src'):
-                self.static_urls.append(urljoin(self.url, img['src']))
+                self.static_urls.add(urljoin(self.url, img['src']))
 
         # Scripts -----------
         scripts = html.find_all('script')
         for script in scripts:
             # filter out inline scripts
             if script.get('src'):
-                self.static_urls.append(urljoin(self.url, script['src']))
+                self.static_urls.add(urljoin(self.url, script['src']))
+        # Remove duplicates
+        self.static_urls = set(self.static_urls)
 
     def _find_urls(self, html):
         urls = html.find_all('a')
@@ -65,7 +68,7 @@ class UrlNode(object):
                 continue
             if current_urlparse.netloc != new_urlparse.netloc:
                 continue
-            self.linked_urls.append(abs_url)
+            self.linked_urls.add(abs_url)
 
 
 class Scraper(object):
