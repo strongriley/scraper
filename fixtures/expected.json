@@ -1,0 +1,25 @@
+[
+  {
+    "url": "http://example.com/index.html", 
+    "assets": [
+      "http://example.com/home.jpg", 
+      "http://example.com/main.js", 
+      "http://example.com/style.css"
+    ]
+  }, 
+  {
+    "url": "http://example.com/about.html", 
+    "assets": [
+      "http://example.com/about.css", 
+      "http://example.com/images/about.jpg"
+    ]
+  }, 
+  {
+    "url": "http://example.com/404", 
+    "assets": []
+  }, 
+  {
+    "url": "http://example.com/login.html", 
+    "assets": []
+  }
+]

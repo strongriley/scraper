@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from urlparse import urljoin
 from urlparse import urlparse
+import json
 
 import fire
 import requests
@@ -28,6 +29,12 @@ class UrlNode(object):
         html = BeautifulSoup(response.text, 'html.parser')
         self._find_static(html)
         self._find_urls(html)
+
+    def get_print_dict(self):
+        return {
+            'url': self.url,
+            'assets': sorted(list(self.static_urls))
+        }
 
     def _find_static(self, html):
         """
@@ -78,16 +85,18 @@ class Scraper(object):
     """
     A website scraper
     """
-    def __init__(self):
+    def __init__(self, should_print=True):
         self._url_queue = []
         self.nodes = dict()
+        self.should_print = should_print  # makes testing easier
 
     def scrape(self, starting_url, max_pages=DEFAULT_MAX_PAGES):
         self.max_pages = max_pages
         # TODO(riley): could also add max_depth but let's keep simple for now
         self._url_queue.append(starting_url)
         self._process_queue()
-        # TODO(riley): print everything
+        if self.should_print:
+            self._print_results()
 
     def _process_queue(self):
         while self._url_queue:
@@ -107,6 +116,15 @@ class Scraper(object):
             # How does one get off this thing?
             if len(self.nodes) >= self.max_pages:
                 break
+
+    def _print_results(self):
+        # TODO(riley): would be nice to stream out, but requires more manual
+        # manipulation of JSON than I'd like right now
+        # TODO(riley): debatable, but including pages that failed to load and
+        # will display empty assets. Get clarity on this.
+        # TODO(riley): iterating from dict not deterministic order. Probs fix
+        print json.dumps(
+            [n.get_print_dict() for n in self.nodes.values()], indent=2)
 
 
 if __name__ == '__main__':

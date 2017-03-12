@@ -41,7 +41,7 @@ class BaseScraperTestCase(unittest.TestCase):
             super(BaseScraperTestCase, self).run(result)
 
     def mock_fixtures(self):
-        # TODO(riley): if making lots of calls to this it'll wasting I/O
+        # TODO(riley): Optimize later. Wasting I/O loading each time called.
         for filename in FIXTURES:
             with open(os.path.join('fixtures', filename)) as f:
                 url = 'http://example.com/%s' % filename
@@ -64,9 +64,11 @@ class AcceptanceTestScraper(BaseScraperTestCase):
             super(AcceptanceTestScraper, self).run(result)
 
     def test_basic_traverse(self):
-        pass
-        # print "hello world"
-        # self.assertEqual(self.stdout_value, "hi")
+        self.mock_fixtures()
+        scraper = Scraper()
+        scraper.scrape('http://example.com/index.html')
+        with open(os.path.join('fixtures', 'expected.json')) as f:
+            self.assertEqual(self.stdout_value, f.read().strip())
 
     @property
     def stdout_value(self):
@@ -79,7 +81,7 @@ class IntegrationTestScraper(BaseScraperTestCase):
     """
     def setUp(self):
         self.url = 'http://example.com/index.html'
-        self.scraper = Scraper()
+        self.scraper = Scraper(should_print=False)
 
     def test_simple_traverse(self):
         self.mock_fixtures()
@@ -330,6 +332,16 @@ class UnitTestUrlNode(BaseScraperTestCase):
         self._mock_response(body)
         self.node.process()
         self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
+
+    def test_get_print_dict(self):
+        body = '<script src="http://example.com/s.js"></script>'
+        self._mock_response(body)
+        self.node.process()
+        expected = {
+            "url": "http://example.com",
+            "assets": ["http://example.com/s.js"]
+        }
+        self.assertEqual(self.node.get_print_dict(), expected)
 
     def _mock_response(self, body, status=200):
         self.responses.add(
