@@ -11,6 +11,9 @@ Notes:
 - Request failures are silently dropped unless it's the first request.
 - Failed URls will still appear in the results with a blank assets array.
 - The default max-pages is 20.
+- Static assets include directly referenced stylesheets, images, and scripts.
+- Some static assets may not be included, e.g. inline images, fonts & images
+  referenced from stylesheets, etc.
 
 Output is something like this:
 

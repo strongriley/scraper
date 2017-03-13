@@ -31,11 +31,16 @@ def captured_output():
 
 
 class BaseScraperTestCase(unittest.TestCase):
+    """
+    Provides automatic mocking of network requests & helper methods
+    """
     def run(self, result=None):
         """
         Instead of decorating every test with @responses.activate just put
         all in a context manager here
         """
+        # TODO(riley): this approach can make it hard to determine which test
+        # failed to make the request. Consider refactoring.
         with responses.RequestsMock(assert_all_requests_are_fired=True) as r:
             self.responses = r
             super(BaseScraperTestCase, self).run(result)
@@ -144,13 +149,12 @@ class IntegrationTestScraper(BaseScraperTestCase):
     def _add_wild_goose_chase(self, res):
         def wild_goose_chase(request):
             # Keeps providing a new link forever
-            # import pdb; pdb.set_trace()
             try:
                 idx = int(request.url.split('/')[-1])
             except:
                 idx = 0
             idx += 1
-            body = '<a href="http://example.com/%s">keep goin</a>' % idx
+            body = '<a href="http://example.com/%s">keep goin!</a>' % idx
             headers = {'idx': str(idx)}
             return (200, headers, body)
 
@@ -162,7 +166,7 @@ class IntegrationTestScraper(BaseScraperTestCase):
 
 class UnitTestUrlNode(BaseScraperTestCase):
     """
-    Unit tests all functionality inside UrlNode class
+    Unit tests all functionality for UrlNode class
     """
     def setUp(self):
         self.url = 'http://example.com'

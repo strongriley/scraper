@@ -1,3 +1,5 @@
+# NB(riley): Edit this. Do not edit requirements.txt! See README.md
+
 # requests plus some crypto stuff for better security
 requests[security]
 

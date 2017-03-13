@@ -16,16 +16,18 @@ class UrlNode(object):
         URL: should be a string something like "http://www.example.com"
 
         Note URL fragments like #top or #chapter2 and trailing slashes will be
-        stripped because we'll still be scraping the same page.
+        stripped to promote consistency and avoid repeat visits to the same
+        page
         """
-        self.url = url.split('#')[0].rstrip('/')
+        self.url = self._format_url(url)
         self.static_urls = set()
         self.linked_urls = []
 
     def process(self):
-        # TODO(riley): How should we manage timeouts?
         response = requests.get(self.url)  # Allow exceptions to bubble
-        # TODO(riley): HTML parsing failures?
+        # TODO(riley): what should we do if the content-type returned isn't
+        # actually text/html? Assume HTML for now, allow parser to silently
+        # fail.
         html = BeautifulSoup(response.text, 'html.parser')
         self._find_static(html)
         self._find_urls(html)
@@ -38,7 +40,7 @@ class UrlNode(object):
 
     def _find_static(self, html):
         """
-        Extends self.static_urls with all stylesheets, images, and scripts
+        Extends self.static_urls with all stylesheets, images and scripts
         """
         # Stylesheets -------
         links = html.find_all('link')
@@ -50,7 +52,6 @@ class UrlNode(object):
 
         # Images ------------
         # grab img tags' src attribute
-        # TODO(riley): should we follow stylesheets to their images and fonts?
         imgs = html.find_all('img')
         for img in imgs:
             if img.get('src'):
@@ -59,9 +60,9 @@ class UrlNode(object):
         # Scripts -----------
         scripts = html.find_all('script')
         for script in scripts:
-            # filter out inline scripts
             if script.get('src'):
                 self.static_urls.add(urljoin(self.url, script['src']))
+
         # Remove duplicates
         self.static_urls = set(self.static_urls)
 
@@ -70,16 +71,20 @@ class UrlNode(object):
         for url in urls:
             if not url.get('href'):
                 continue
-            relative_url = url.get('href').split('#')[0].rstrip('/')
+            relative_url = self._format_url(url.get('href'))
             abs_url = urljoin(self.url, relative_url)
+            # Use urlparse to compare attrs instead of hand-rolling regex
             current_urlparse = urlparse(self.url)
             new_urlparse = urlparse(abs_url)
             if current_urlparse == new_urlparse:
                 continue
             if current_urlparse.netloc != new_urlparse.netloc:
                 continue
-            # Add each time, Scraper should decide if it should skip
+            # Always add the URL. Scraper class should decide if it should skip
             self.linked_urls.append(abs_url)
+
+    def _format_url(self, url):
+        return url.split('#')[0].rstrip('/')
 
 
 class Scraper(object):
@@ -104,8 +109,8 @@ class Scraper(object):
         while self._url_queue:
             node = UrlNode(self._url_queue.pop(0))
             if node.url in self.nodes:
-                continue
-            self.nodes[node.url] = node
+                continue  # Skip dups
+            self.nodes[node.url] = node  # Use consistent URL
             try:
                 node.process()
             # On the first request, errors will not be suppressed so the user
@@ -116,7 +121,7 @@ class Scraper(object):
                     raise e
             self._url_queue.extend(node.linked_urls)
             self.print_list.append(node.get_print_dict())
-            # How does one get off this thing?
+            # "How does one get off this thing?" -Marcus Brody
             if len(self.nodes) >= self.max_pages:
                 break
 
