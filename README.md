@@ -57,6 +57,13 @@ pip install -r requirements.txt
 ## Contributing
 PRs / forks welcome. This project is unmaintained.
 
+
+### Testing
+
+```
+./test_scraper.py
+```
+
 ### Dependencies
 Developers modify the `user-requirements.txt`file to add or update new deps.
 After modifying, run:
