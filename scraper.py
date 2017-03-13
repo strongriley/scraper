@@ -125,7 +125,7 @@ class Scraper(object):
         # manipulation of JSON than I'd like right now
         # TODO(riley): debatable, but including pages that failed to load and
         # will display empty assets. Get clarity on this.
-        print json.dumps(self.print_list, indent=2)
+        print json.dumps(self.print_list, indent=2, separators=(',', ': '))
 
 
 if __name__ == '__main__':

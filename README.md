@@ -17,17 +17,17 @@ Output is something like this:
 ```
 [
   {
-    "url": "http://example.com/index.html", 
+    "url": "http://example.com/index.html",
     "assets": [
-      "http://example.com/home.jpg", 
-      "http://example.com/main.js", 
+      "http://example.com/home.jpg",
+      "http://example.com/main.js",
       "http://example.com/style.css"
     ]
-  }, 
+  },
   {
-    "url": "http://example.com/about.html", 
+    "url": "http://example.com/about.html",
     "assets": [
-      "http://example.com/about.css", 
+      "http://example.com/about.css",
       "http://example.com/images/about.jpg"
     ]
   }
