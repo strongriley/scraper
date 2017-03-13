@@ -94,15 +94,15 @@ class Scraper(object):
     def __init__(self, should_print=True):
         self._url_queue = []
         self.nodes = dict()
-        self.print_list = []
-        self.should_print = should_print  # makes testing easier
+        self._print_list = []
+        self._should_print = should_print  # makes testing easier
 
     def scrape(self, starting_url, max_pages=DEFAULT_MAX_PAGES):
         self.max_pages = max_pages
         # TODO(riley): could also add max_depth but let's keep simple for now
         self._url_queue.append(starting_url)
         self._process_queue()
-        if self.should_print:
+        if self._should_print:
             self._print_results()
 
     def _process_queue(self):
@@ -120,7 +120,7 @@ class Scraper(object):
                 if len(self.nodes) == 1:
                     raise e
             self._url_queue.extend(node.linked_urls)
-            self.print_list.append(node.get_print_dict())
+            self._print_list.append(node.get_print_dict())
             # "How does one get off this thing?" -Marcus Brody
             if len(self.nodes) >= self.max_pages:
                 break
@@ -130,7 +130,7 @@ class Scraper(object):
         # manipulation of JSON than I'd like right now
         # TODO(riley): debatable, but including pages that failed to load and
         # will display empty assets. Get clarity on this.
-        print json.dumps(self.print_list, indent=2, separators=(',', ': '))
+        print json.dumps(self._print_list, indent=2, separators=(',', ': '))
 
 
 if __name__ == '__main__':
