@@ -8,18 +8,18 @@
     ]
   }, 
   {
-    "url": "http://example.com/about.html", 
-    "assets": [
-      "http://example.com/about.css", 
-      "http://example.com/images/about.jpg"
-    ]
+    "url": "http://example.com/login.html", 
+    "assets": []
   }, 
   {
     "url": "http://example.com/404", 
     "assets": []
   }, 
   {
-    "url": "http://example.com/login.html", 
-    "assets": []
+    "url": "http://example.com/about.html", 
+    "assets": [
+      "http://example.com/about.css", 
+      "http://example.com/images/about.jpg"
+    ]
   }
 ]

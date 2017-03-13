@@ -47,6 +47,7 @@ You'll need at least the following installed on your machine:
 
 ```
 virtualenv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 

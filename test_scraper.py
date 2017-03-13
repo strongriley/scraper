@@ -265,13 +265,13 @@ class UnitTestUrlNode(BaseScraperTestCase):
         body = '<a href="http://example.com/login">login</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
+        self.assertEqual(self.node.linked_urls, ['http://example.com/login'])
 
     def test_find_urls_strip_trailing_slash(self):
         body = '<a href="http://example.com/login/">login</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
+        self.assertEqual(self.node.linked_urls, ['http://example.com/login'])
 
     def test_find_urls_add_subdomain(self):
         body = '<a href="http://mail.example.com">e-mail</a>'
@@ -305,7 +305,7 @@ class UnitTestUrlNode(BaseScraperTestCase):
         body = '<a href="https://example.com/login">secure login</a>'
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, {'https://example.com/login'})
+        self.assertEqual(self.node.linked_urls, ['https://example.com/login'])
 
     def test_find_urls_fragment(self):
         body = '<a name="top"></a><a href="#top">jump to top</a>'
@@ -324,14 +324,14 @@ class UnitTestUrlNode(BaseScraperTestCase):
         node.process()
         self.assertFalse(node.linked_urls)
 
-    def test_find_urls_remove_duplicates(self):
+    def test_find_urls_keep_duplicates(self):
         body = '''
         <a href="http://example.com/login">login</a>
         <a href="http://example.com/login">login</a>
         '''
         self._mock_response(body)
         self.node.process()
-        self.assertEqual(self.node.linked_urls, {'http://example.com/login'})
+        self.assertEqual(self.node.linked_urls, ['http://example.com/login']*2)
 
     def test_get_print_dict(self):
         body = '<script src="http://example.com/s.js"></script>'

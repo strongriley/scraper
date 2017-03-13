@@ -20,7 +20,7 @@ class UrlNode(object):
         """
         self.url = url.split('#')[0].rstrip('/')
         self.static_urls = set()
-        self.linked_urls = set()
+        self.linked_urls = []
 
     def process(self):
         # TODO(riley): How should we manage timeouts?
@@ -78,7 +78,8 @@ class UrlNode(object):
                 continue
             if current_urlparse.netloc != new_urlparse.netloc:
                 continue
-            self.linked_urls.add(abs_url)
+            # Add each time, Scraper should decide if it should skip
+            self.linked_urls.append(abs_url)
 
 
 class Scraper(object):
@@ -88,6 +89,7 @@ class Scraper(object):
     def __init__(self, should_print=True):
         self._url_queue = []
         self.nodes = dict()
+        self.print_list = []
         self.should_print = should_print  # makes testing easier
 
     def scrape(self, starting_url, max_pages=DEFAULT_MAX_PAGES):
@@ -113,6 +115,7 @@ class Scraper(object):
                 if len(self.nodes) == 1:
                     raise e
             self._url_queue.extend(node.linked_urls)
+            self.print_list.append(node.get_print_dict())
             # How does one get off this thing?
             if len(self.nodes) >= self.max_pages:
                 break
@@ -122,9 +125,7 @@ class Scraper(object):
         # manipulation of JSON than I'd like right now
         # TODO(riley): debatable, but including pages that failed to load and
         # will display empty assets. Get clarity on this.
-        # TODO(riley): iterating from dict not deterministic order. Probs fix
-        print json.dumps(
-            [n.get_print_dict() for n in self.nodes.values()], indent=2)
+        print json.dumps(self.print_list, indent=2)
 
 
 if __name__ == '__main__':
